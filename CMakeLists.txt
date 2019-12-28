@@ -8,9 +8,12 @@ endif ()
 #默认由环境变量 OpenCV_DIR 定位OpenCVConfig.cmake
 find_package( OpenCV REQUIRED )
 
+#默认由环境变量 OpenVINO_DIR 定位OpenCVConfig.cmake
+find_package( OpenVINO REQUIRED )
+
 # 设置输出目录
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/../bin)
 
 #添加要编译的子目录
 add_subdirectory(demo)
-add_subdirectory(blue)
+#add_subdirectory(blue)

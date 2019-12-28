@@ -1,9 +1,39 @@
 @echo off
 
-if DEFINED OpenCV_DIR goto MAKE
+if DEFINED OpenVINO_DIR goto MAKE
+
+rem 设置 opencv 环境
 set OpenCV_DIR=%~dp0opencv\build
+
+rem 查找 vs 安装目录
+for /F "delims=" %%i in ('vswhere -property installationPath') do ( set installationPath=%%i )
+if NOT DEFINED installationPath goto vc14
+
+rem 并去掉尾空格
+:intercept
+if "%installationPath:~-1%"==" " set "installationPath=%installationPath:~0,-1%"&goto intercept
+
+rem 查找 vs 版本号前2位
+for /F "delims=" %%i in ('vswhere -property installationVersion') do ( set installationVersion=%%i )
+set installationVersion=%installationVersion:~0,2%
+
+rem 当前只支持 15
+if "%installationVersion%" NEQ "15" goto ERROR
+
+rem 设置 vs 环境
+call "%installationPath%\Common7\Tools\VsDevCmd.bat" -arch=x64
+set PATH=%OpenCV_DIR%\x64\vc%installationVersion%\bin;%PATH%
+goto OpenVINO
+
+:vc14
 call "%VS140COMNTOOLS%..\..\VC\vcvarsall.bat" x64
 set PATH=%OpenCV_DIR%\x64\vc14\bin;%PATH%
+
+
+:OpenVINO
+rem 设置 openvino 环境
+set OpenVINO_DIR=%~dp0openvino\inference_engine
+set PATH=%OpenVINO_DIR%\binary;%PATH%
 
 :MAKE
 if not exist build mkdir build
@@ -11,3 +41,5 @@ pushd build
 rem cmake -G "Visual Studio 14 2015 Win64" ..
 cmake -DCMAKE_BUILD_TYPE=release -G "NMake Makefiles" .. && nmake
 popd
+
+:ERROR
