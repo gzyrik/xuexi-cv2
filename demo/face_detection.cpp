@@ -10,11 +10,11 @@ static void detectAndDisplay( cv::Mat frame )
 
     //ºÏ≤‚»À¡≥
     std::vector<cv::Rect> faces;
-    face_cascade.detectMultiScale( frame_gray, faces, 1.1, 2, CV_HAAR_SCALE_IMAGE);
+    face_cascade.detectMultiScale( frame_gray, faces, 1.1, 2);
     for (auto& face : faces) {
         //ºÏ≤‚—€æ¶
         std::vector<cv::Rect> eyes;
-        eyes_cascade.detectMultiScale( frame_gray(face), eyes, 1.1, 2, CV_HAAR_SCALE_IMAGE);
+        eyes_cascade.detectMultiScale( frame_gray(face), eyes, 1.1, 2);
 
         //ªÊ÷∆Œª÷√
         cv::rectangle( frame_scaled, face.tl(), face.br(), cv::Scalar( 255, 0, 255 ) );

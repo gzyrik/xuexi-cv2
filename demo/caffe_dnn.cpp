@@ -1,5 +1,6 @@
 #include <opencv2/opencv.hpp>
 #include <opencv2/dnn.hpp>
+#include <fstream>
 //对应名称列表
 static std::vector<std::string> readClassNames(const std::string& labelFilename)
 {
@@ -28,7 +29,7 @@ void main(int argc, char **argv)
         std::cerr << "\t [dir]bvlc_googlenet.caffemodel" << std::endl;
         std::cerr << "\t [dir]synset_words.txt" << std::endl;
         std::cerr << "Example:" <<std::endl;
-        std::cerr << argv[0] << " space_shuttle.jpg " << " ../dnn/"<<std::endl;
+        std::cerr << argv[0] << " space_shuttle.jpg " << " res/dnn"<<std::endl;
         exit(-1);
     }
     std::string dir = "./";

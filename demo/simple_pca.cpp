@@ -5,17 +5,17 @@
 static void drawAxis(cv::Mat& image, const cv::Point& start, const cv::Point& offet, const cv::Scalar& color, const char* text)
 {
     cv::Point p, end(start + offet);
-    cv::line(image, start, end, color, 1, CV_AA);
-    if (text) cv::putText(image, text, end, cv::FONT_HERSHEY_COMPLEX, 0.5, color, 1, CV_AA, true);
+    cv::line(image, start, end, color, 1, cv::LINE_AA);
+    if (text) cv::putText(image, text, end, cv::FONT_HERSHEY_COMPLEX, 0.5, color, 1, cv::LINE_AA, true);
     //绘制箭头
     double angle = atan2(-offet.y, -offet.x);//改变方向,指向start点
     p.x = (int) (end.x + 9 * cos(angle + CV_PI / 4));
     p.y = (int) (end.y + 9 * sin(angle + CV_PI / 4));
-    cv::line(image, p, end, color, 1, CV_AA);
+    cv::line(image, p, end, color, 1, cv::LINE_AA);
 
     p.x = (int) (end.x + 9 * cos(angle - CV_PI / 4));
     p.y = (int) (end.y + 9 * sin(angle - CV_PI / 4));
-    cv::line(image, p, end, color, 1, CV_AA);
+    cv::line(image, p, end, color, 1, cv::LINE_AA);
 }
 static void detectAndDisplay(std::vector<cv::Point> &contour, cv::Mat &image)
 {
@@ -24,7 +24,7 @@ static void detectAndDisplay(std::vector<cv::Point> &contour, cv::Mat &image)
         contour_mat.assignTo(data, CV_64FC1);
     }
 
-    cv::PCA pca(data, cv::Mat(), CV_PCA_DATA_AS_ROW);
+    cv::PCA pca(data, cv::Mat(), cv::PCA::DATA_AS_ROW);
     auto v = pca.mean.ptr<double>(0);
     const cv::Point2d center(v[0],v[1]);
 
@@ -55,12 +55,12 @@ void main(int argc, char** argv)
     }
     cv::Mat gray_mat, binary_mat;
     cv::cvtColor( image, gray_mat, cv::COLOR_BGR2GRAY );
-    cv::threshold(gray_mat, binary_mat, 50, 255, CV_THRESH_BINARY | CV_THRESH_OTSU);
+    cv::threshold(gray_mat, binary_mat, 50, 255, cv::THRESH_BINARY | cv::THRESH_OTSU);
 
     //轮廓
     std::vector<cv::Vec4i> hierarchy;
     std::vector<std::vector<cv::Point> > contours;
-    cv::findContours(binary_mat, contours, hierarchy, CV_RETR_LIST, CV_CHAIN_APPROX_NONE);
+    cv::findContours(binary_mat, contours, hierarchy, cv::RETR_LIST, cv::CHAIN_APPROX_NONE);
 
     for (int i=0; i >= 0; i = hierarchy[i][0] ){
         double area = cv::contourArea(contours[i]);//面积

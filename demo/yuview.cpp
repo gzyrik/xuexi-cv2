@@ -1,4 +1,5 @@
 #include <opencv2/opencv.hpp>
+#include <fstream>
 struct FormatSpec {
     const char* name;
     const char* suffix;//suffix list
@@ -56,6 +57,7 @@ struct Movie {
                 spec = &_format[i];
                 frameSize = int(width * height * _format[i].ratio);
                 frameCount = int(stream.tellg()/frameSize);
+                std::cout << file <<":" << width << "x" << height << " " << spec->name << std::endl;
                 return;
             }
         }
@@ -82,7 +84,14 @@ static void on_trackbar(int pos, void* )
     int x=0;
     for(auto& moive : _movies)
         moive.draw(_canvas, pos, x);
-    cv::imshow(_title, _canvas);
+    if (_canvas.cols < 800) {
+        cv::Mat image;
+        cv::resize(_canvas, image, _canvas.size()*800/_canvas.cols); 
+        cv::imshow(_title, image);
+    }
+    else {
+        cv::imshow(_title, _canvas);
+    }
 }
 void main(int argc, char* argv[])
 {

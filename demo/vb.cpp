@@ -1,16 +1,33 @@
 #include <opencv2/opencv.hpp>
+// 关闭编译时产生的警告
+#ifdef _MSC_VER
+#pragma  warning( push ) 
+#pragma  warning( disable: 4251 4275 4819 )
+#define getcwd _getcwd
+#endif
+#ifdef __GNUC__
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Winherited-variadic-ctor"
+#endif
 #include <inference_engine.hpp>
 #include <ie_compound_blob.h>
 #include <extension/ext_list.hpp>
-InferenceEngine::Core ie;
-std::string _input0Name, _output0Name;
-InferenceEngine::InferRequest _inferRequest;
-bool Init(const std::string& model, const cv::Size& size) 
+#ifdef _MSC_VER
+#pragma  warning(  pop  ) 
+#endif
+#ifdef __GNUC__
+#pragma GCC diagnostic pop
+#endif
+static std::string _input0Name, _output0Name;
+static InferenceEngine::InferRequest _inferRequest;
+static uint8_t* _uvBuf = nullptr;//uv of NV12
+static bool Init(const std::string& model, const cv::Size& size) 
 {
     std::cout << "InferenceEngine: " << InferenceEngine::GetInferenceEngineVersion() << std::endl;
     ////////////////////////////////////////////////////////////////////////////////////////////////////////
     // 1.	memory malloc
-
+    delete _uvBuf;
+    _uvBuf = new uint8_t[size.height * size.width / 2];
     ////////////////////////////////////////////////////////////////////////////////////////////////////////
     // 2.	Read network:	files -> network
     InferenceEngine::CNNNetReader networkReader;
@@ -49,23 +66,22 @@ bool Init(const std::string& model, const cv::Size& size)
     ////////////////////////////////////////////////////////////////////////////////////////////////////////
     // 6. Loading model to the device 
     const std::string IE_DEVICE_NAME = "CPU";
+    InferenceEngine::Core ie;
     ie.AddExtension(std::make_shared<InferenceEngine::Extensions::Cpu::CpuExtensions>(), IE_DEVICE_NAME);
     InferenceEngine::ExecutableNetwork executableNetwork = ie.LoadNetwork(network, IE_DEVICE_NAME);
     _inferRequest = executableNetwork.CreateInferRequest();
+    return true;
 }
-static int I420ToNV12(const uint8_t* src_u, int src_stride_u,
-		      			const uint8_t* src_v, int src_stride_v,
-						uint8_t* dst_uv, int dst_stride_uv,
-						int width, int height);
-static uint8_t _uvBuf[1024*1024];
-cv::Mat Matting(const cv::Mat& frame)
+static cv::Mat Matting(const cv::Mat& frame)
 {
     const size_t H = frame.rows, W = frame.cols;
     const size_t H_2 = (H + 1) >> 1, W_2 = (W + 1) >> 1;
-    // 0. system statistic update
     cv::Mat i420;
     cv::cvtColor(frame, i420, cv::COLOR_BGR2YUV_I420);
-    I420ToNV12(i420.data+(W*H), W_2, i420.data+(W*H*5/4), W_2, _uvBuf, W, W, H);
+    uint8_t* u = i420.data+(W*H), *v = u + W_2*H_2, *d=_uvBuf;
+    for (int i = 0; i < W_2*H_2; ++i) {
+        *d++ = u[i], *d++ = v[i];
+    }
     ////////////////////////////////////////////////////////////////////////////////////////////////////////
     // 2. wrap & set: yuv -> imgBlob
     InferenceEngine::TensorDesc yDesc(InferenceEngine::Precision::U8,
@@ -86,7 +102,6 @@ cv::Mat Matting(const cv::Mat& frame)
     const auto outputBuffer = outputBlob->buffer().as<float*>();
     return cv::Mat(frame.size(), CV_32FC1, outputBuffer + outputDims[2] * outputDims[3]);
 }
-
 void main()
 {
     char pwd[1024];
@@ -101,75 +116,36 @@ void main()
 
     cv::VideoCapture camera(0);
     cv::Mat frame, image, mask;
-    auto begTime = (double)cv::getTickCount();
-    int count=0;
-    while (camera.read(frame) ) {
+
+    size_t count = 0;
+    double lastFps[0x100] = {0};
+    auto lastTick = (double)cv::getTickCount();
+    while (cv::waitKey(1) == -1 && camera.read(frame) ) {
         cv::resize(frame, image, bgImage.size());
-        ++count;
         mask = Matting(image);
 
         image.forEach<cv::Vec3b>([&](cv::Vec3b& element, const int position[]) {
             const auto& bg = bgImage.at<cv::Vec3b>(position);
             const auto& f = mask.at<float>(position);
             for (int i=0; i<3;++i)
-                element[i] = (element[i] - bg[i]) * f + bg[i];
+                element[i] = static_cast<uint8_t>((element[i] - bg[i]) * f + bg[i]);
         });
-        auto endTime = (double)cv::getTickCount();
-        auto fps = count * cv::getTickFrequency()/(endTime - begTime);
+
+        auto nowTick = (double)cv::getTickCount();
+        lastFps[count++ & 0xFF] = cv::getTickFrequency()/(nowTick - lastTick);
+        lastTick = nowTick;
+
+        //stats
+        double sum = 0, minFps=120, maxFps = -1;
+        const auto num = std::min<size_t>(0x100, count);
+        for (size_t i = 0; i < num; ++i) {
+            const auto& f = lastFps[i];
+            sum += f;
+            if (f > maxFps) maxFps = f;
+            if (f < minFps) minFps = f;
+        }
+        printf("\rAvg=%f Min=%f Max=%f", sum/num, minFps, maxFps);
+
         cv::imshow("vb",  image);
-        printf("\r%f", fps);
-        if (cv::waitKey(1) != -1)  break;
     }
 }
-typedef unsigned char uint8_t;
-
-static void MergeUVRow_C(const uint8_t* src_u, const uint8_t* src_v, uint8_t* dst_uv, int width) 
-{
-  int x;
-  for (x = 0; x < width - 1; x += 2) {
-    dst_uv[0] = src_u[x];
-    dst_uv[1] = src_v[x];
-    dst_uv[2] = src_u[x + 1];
-    dst_uv[3] = src_v[x + 1];
-    dst_uv += 4;
-  }
-  if (width & 1) {
-    dst_uv[0] = src_u[width - 1];
-    dst_uv[1] = src_v[width - 1];
-  }
-}
-static int I420ToNV12(	const uint8_t* src_u, int src_stride_u,
-		      			const uint8_t* src_v, int src_stride_v,
-						uint8_t* dst_uv, int dst_stride_uv,
-						int width, int height) 
-{
-	// Coalesce rows.
-	int halfwidth = (width + 1) >> 1;
-	int halfheight = (height + 1) >> 1;
-	if (!src_u || !src_v || !dst_uv ||
-		width <= 0 || height <= 0) {
-		return -1;
-	}
-
-	// Coalesce rows.
-	if (src_stride_u == halfwidth &&
-		src_stride_v == halfwidth &&
-		dst_stride_uv == halfwidth * 2) {
-		halfwidth *= halfheight;
-		halfheight = 1;
-		src_stride_u = src_stride_v = dst_stride_uv = 0;
-	}
-
-	for (int y = 0; y < halfheight; ++y) {
-		// Merge a row of U and V into a row of UV.
-		MergeUVRow_C(src_u, src_v, dst_uv, halfwidth);
-		src_u += src_stride_u;
-		src_v += src_stride_v;
-		dst_uv += dst_stride_uv;
-	}
-	return 0;
-}
-
-    
-
-    

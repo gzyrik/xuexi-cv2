@@ -1,5 +1,6 @@
 #include <opencv2/opencv.hpp>
 #include <cmath>
+#include <fstream>
 static double nuclear_norm(const cv::Mat& M){
     return std::sqrt(cv::sum((M*M.t()).diag())[0]);//ºË·¶Êý
 }
