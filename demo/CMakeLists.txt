@@ -13,11 +13,11 @@ add_executable( simple_svm simple_svm.cpp )
 target_link_libraries( simple_svm ${OpenCV_LIBS} )
 
 # 项目信息
-project( vb )
+project(openvino_vb )
 include_directories( ${OpenCV_INCLUDE_DIRS} ${OpenVINO_INCLUDE_DIRS})
 # 指定生成目标
-add_executable( vb vb.cpp )
-target_link_libraries( vb ${OpenCV_LIBS} ${OpenVINO_LIBS})
+add_executable( openvino_vb openvino_vb.cpp )
+target_link_libraries( openvino_vb ${OpenCV_LIBS} ${OpenVINO_LIBS})
 
 # 项目信息
 project( nonlinear_svm )

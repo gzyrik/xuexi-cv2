@@ -1,5 +1,8 @@
 @echo off
-
+rem 须先将 opencv.7z 解压到opencv/
+rem 须先将 openvino.7z 解压到 openvino/
+rem 须先将 mnn.7z 解压到 mnn/
+rem 成功后 在顶层目录,执行 bin/vb.exe 等例子
 if DEFINED OpenVINO_DIR goto MAKE
 
 rem 设置 opencv 环境

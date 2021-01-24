@@ -21,24 +21,17 @@ static std::vector<std::string> readClassNames(const std::string& labelFilename)
 }
 void main(int argc, char **argv)
 {
-    cv::Mat image;
-    if (argc < 2 || (image = cv::imread(argv[1])).empty()){
-        std::cerr << argv[0] << " <image> [dir]" << std::endl;
-        std::cerr << "* MUST EXIST:" << std::endl;
-        std::cerr << "\t [dir]bvlc_googlenet.prototxt"   << std::endl;
-        std::cerr << "\t [dir]bvlc_googlenet.caffemodel" << std::endl;
-        std::cerr << "\t [dir]synset_words.txt" << std::endl;
-        std::cerr << "Example:" <<std::endl;
-        std::cerr << argv[0] << " space_shuttle.jpg " << " res/dnn"<<std::endl;
-        exit(-1);
+    std::string dir = "res/caffe";
+    std::string file= "res/space_shuttle.jpg";
+    if (argc > 1) {
+        file = argv[1];
+        if (argc > 2) dir = argv[2];
     }
-    std::string dir = "./";
-    if (argc > 2) {
-        dir = argv[2];
-        if (dir.back() != '/') dir.push_back('/');
-    }
+    if (!dir.empty() && dir.back() != '/')
+        dir.push_back('/');
 
     //打印信息
+    std::cout << "Read Image: " << file << std::endl;
     const std::string prototxt(dir + "bvlc_googlenet.prototxt");
     const std::string caffemodel(dir + "bvlc_googlenet.caffemodel");
     const std::string synsetxt(dir + "synset_words.txt");
@@ -50,6 +43,14 @@ void main(int argc, char **argv)
     std::cout << "http://dl.caffe.berkeleyvision.org/bvlc_googlenet.caffemodel" << std::endl;
     std::cout << std::endl;
 
+    cv::Mat image = cv::imread(file);
+    if (image.empty()) {
+        std::cerr << "Problem loading imagel!!!" << std::endl;
+        std::cerr << "Example:\n" << argv[0] << " space_shuttle.jpg " << " res/caffe"<<std::endl;
+        exit(-1);
+    }
+
+
     //读取1000种类别
     auto classNames = readClassNames(synsetxt);
 
@@ -57,6 +58,7 @@ void main(int argc, char **argv)
     cv::dnn::Net net = cv::dnn::readNetFromCaffe(prototxt, caffemodel);
     if (net.empty()) {
         std::cerr << "Problem loading model!!!" << std::endl;
+        std::cerr << "Example:\n" << argv[0] << " space_shuttle.jpg " << " res/caffe"<<std::endl;
         exit(-1);
     }
 
