@@ -23,7 +23,11 @@ static InferenceEngine::InferRequest _inferRequest;
 static uint8_t* _uvBuf = nullptr;//uv of NV12
 static bool Init(const std::string& model, const cv::Size& size) 
 {
+    //打印信息
     std::cout << "InferenceEngine: " << InferenceEngine::GetInferenceEngineVersion() << std::endl;
+    std::cout << "Network: " << model << ".xml" << std::endl;
+    std::cout << "Weights: " << model << ".bin" << std::endl;
+    std::cout << std::endl;
     ////////////////////////////////////////////////////////////////////////////////////////////////////////
     // 1.	memory malloc
     delete _uvBuf;
@@ -77,7 +81,7 @@ static cv::Mat Matting(const cv::Mat& nv12)
     const size_t H = nv12.rows*2/3, W = nv12.cols;
     const size_t H_2 = (H + 1) >> 1, W_2 = (W + 1) >> 1;
     ////////////////////////////////////////////////////////////////////////////////////////////////////////
-    // 2. wrap & set: yuv -> imgBlob
+    // 7. wrap & set: yuv -> imgBlob
     InferenceEngine::TensorDesc yDesc(InferenceEngine::Precision::U8,
         { 1, 1, H, W}, InferenceEngine::Layout::NHWC);
     InferenceEngine::TensorDesc uvDesc(InferenceEngine::Precision::U8,
@@ -86,22 +90,19 @@ static cv::Mat Matting(const cv::Mat& nv12)
     InferenceEngine::Blob::Ptr uvBlob = InferenceEngine::make_shared_blob<uint8_t>(uvDesc, nv12.data+H*W);
     InferenceEngine::Blob::Ptr imgBlob= InferenceEngine::make_shared_blob<InferenceEngine::NV12Blob>(yBlob, uvBlob);
     ////////////////////////////////////////////////////////////////////////////////////////////////////////
-    // 4. Do inference 
+    // 8. Do inference 
     _inferRequest.SetBlob(_input0Name, imgBlob);
     _inferRequest.Infer();
     ////////////////////////////////////////////////////////////////////////////////////////////////////////
-    // 6. Process output , default channel order = NCHW
+    // 9. Process output , default channel order = NCHW
     const InferenceEngine::Blob::Ptr& outputBlob = _inferRequest.GetBlob(_output0Name);
     auto outputDims = outputBlob->getTensorDesc().getDims();
     const auto outputBuffer = outputBlob->buffer().as<float*>();
-    return cv::Mat(cv::Size(W,H), CV_32FC1, outputBuffer + outputDims[2] * outputDims[3]);
+    return cv::Mat(cv::Size((int)W,(int)H), CV_32FC1, outputBuffer + outputDims[2] * outputDims[3]);
 }
 void main()
 {
-    char pwd[1024];
-    printf("pwd=%s", getcwd(pwd, sizeof(pwd)));
-
-    std::string model("res/openvino/vb_mod1.0_2019r2"), bg_path="res/background.jpg";
+    const std::string model("res/openvino/vb_mod1.0_2019r2"), bg_path="res/background.jpg";
 
     cv::Mat bgImage = cv::imread(bg_path);
     cv::resize(bgImage, bgImage, cv::Size(bgImage.cols&~7, bgImage.rows&~7)); //对齐

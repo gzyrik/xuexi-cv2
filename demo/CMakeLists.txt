@@ -20,6 +20,13 @@ add_executable( openvino_vb openvino_vb.cpp )
 target_link_libraries( openvino_vb ${OpenCV_LIBS} ${OpenVINO_LIBS})
 
 # 项目信息
+project(mnn_vb )
+include_directories( ${OpenCV_INCLUDE_DIRS} ${MNN_INCLUDE_DIRS})
+# 指定生成目标
+add_executable( mnn_vb mnn_vb.cpp )
+target_link_libraries( mnn_vb ${OpenCV_LIBS} ${MNN_LIBS})
+
+# 项目信息
 project( nonlinear_svm )
 include_directories( ${OpenCV_INCLUDE_DIRS} )
 # 指定生成目标

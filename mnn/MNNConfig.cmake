@@ -1,0 +1,6 @@
+get_filename_component(MNN_CONFIG_PATH "${CMAKE_CURRENT_LIST_DIR}" REALPATH)
+
+find_library(MNN_LIBS NAMES MNN.lib PATHS "${MNN_CONFIG_PATH}/x64" )
+set(MNN_INCLUDE_DIRS "${MNN_CONFIG_PATH}/include")
+mark_as_advanced(MNN_INCLUDE_DIRS MNN_LIBS )
+set(MNN_FOUND TRUE)
