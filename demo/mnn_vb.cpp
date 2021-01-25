@@ -51,6 +51,7 @@ static bool Init(const std::string& model, const cv::Size& size)
     _input_tensor = _interpreter->getSessionInput(_session, NULL);
     if (!_input_tensor) return false;
     std::vector<int> shape = _input_tensor->shape();
+    std::cout << "resized:" << shape[0] << " " << shape[1] << "x" << shape[2] << ":" << shape[3] << std::endl;
     shape[0] = 1;
     shape[1] = _input_size.height;
     shape[2] = _input_size.width;

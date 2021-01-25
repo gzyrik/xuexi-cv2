@@ -34,6 +34,7 @@ call "%VS140COMNTOOLS%..\..\VC\vcvarsall.bat" x64
 
 :InitEnv
 set PATH=%OpenCV_DIR%\x64\vc%installationVersion%\bin;%PATH%
+if not exist build mkdir build
 
 rem 设置 openvino 环境
 set OpenVINO_DIR=%~dp0openvino\inference_engine
@@ -43,9 +44,12 @@ rem 设置 mnn 环境
 set MNN_DIR=%~dp0mnn
 set PATH=%MNN_DIR%\x64\vc%installationVersion%\bin;%PATH%
 
-:MAKE
-if not exist build mkdir build
+rem 设置 cmake 环境
+set PATH="C:\Program Files (x86)\CMake\bin";%PATH%
+
 set _DOMAKE_=1
+
+:MAKE
 pushd build
 rem cmake -G "Visual Studio 14 2015 Win64" ..
 cmake -DCMAKE_BUILD_TYPE=release -G "NMake Makefiles" .. && nmake
